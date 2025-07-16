@@ -1,7 +1,6 @@
 # Robô de Hockey com ESP32 e Webserver
 
 Robô de Hockey controlado via webserver.
-
 ---
 
 ## 🚀 Visão Geral
