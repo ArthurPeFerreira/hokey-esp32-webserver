@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle Hokey</title>
+    <style>
+        :root {
+        --size_joystick: 700px;
+        --size_stick: 20px;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: calc(100dvh - var(--size_joystick)));
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #joystick {
+            margin-top: 20vh;
+            width: var(--size_joystick);
+            height: var(--size_joystick);
+            background-color: #ddd;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+        }
+        #stick {
+            width: var(--size_stick);
+            height: var(--size_stick);
+            background-color: #000;
+            border-radius: 50%;
+            position: absolute;
+            align-items: center;
+            top: calc(50% - (var(--size_stick) / 2));
+            left: calc(50% - (var(--size_stick) / 2));
+            transform: translate(-50%, -50%);
+            transition: transform 0s;
+            
+        } 
+    </style>
+</head>
+<body>
+    <div id="joystick">
+        <div id="stick"></div>
+    </div>
+
+    <script>
+        const joystick = document.getElementById('joystick');
+        const stick = document.getElementById('stick');
+        const maxRange = joystick.clientWidth / 2 - stick.clientWidth / 2;
+
+        let originX = joystick.clientWidth / 2;
+        let originY = joystick.clientHeight / 2;
+
+        function getDistance(x1, y1, x2, y2) {
+            return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        }
+
+        function onMove(event) {
+            let touch = event.touches ? event.touches[0] : event;
+            let x = touch.clientX - joystick.getBoundingClientRect().left;
+            let y = touch.clientY - joystick.getBoundingClientRect().top;
+            let distance = getDistance(originX, originY, x, y);
+
+            if (distance < maxRange) {
+                stick.style.transform = `translate(${x - originX}px, ${y - originY}px)`;
+            } else {
+                let angle = Math.atan2(y - originY, x - originX);
+                stick.style.transform = `translate(${maxRange * Math.cos(angle)}px, ${maxRange * Math.sin(angle)}px)`;
+            }
+
+            // Envia as coordenadas para o ESP8266 via requisição GET
+            let deltaX = (x - originX) / maxRange;
+            let deltaY = (y - originY) / maxRange;
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", `/joystick?x=${deltaX.toFixed(2)}&y=${deltaY.toFixed(2)}`, true);
+            xhr.send();
+        }
+
+        function onEnd() {
+            stick.style.transform = 'translate(-50%, -50%)';
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", `/joystick?x=0&y=0`, true);
+            xhr.send();
+        }
+
+        joystick.addEventListener('mousedown', onMove);
+        joystick.addEventListener('touchstart', onMove);
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('touchmove', onMove);
+        document.addEventListener('mouseup', onEnd);
+        document.addEventListener('touchend', onEnd);
+    </script>
+</body>
+</html>
